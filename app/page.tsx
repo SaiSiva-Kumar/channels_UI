@@ -1,103 +1,109 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useEffect, useState } from 'react'
+import { useAccessToken } from '../utils/refresh_token'
+import { useRouter } from 'next/navigation'
+import CreateChannelPopup from './input_feild/page'
+import UsersJoiningChannel from './join_channel/users_joining_card'
+import Link from 'next/link'
+
+export default function HomePage() {
+  const [channels, setChannels] = useState<string[]>([])
+  const [createdChannels, setCreatedChannels] = useState<string[]>([])
+  const [showPopup, setShowPopup] = useState(false)
+  const [showJoinCard, setShowJoinCard] = useState(false)
+  const router = useRouter()
+
+  useAccessToken()
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token')
+    const timestamp = localStorage.getItem('sign_in_timestamp')
+    const channelsData = localStorage.getItem('channels_data')
+    const createdChannelsData = localStorage.getItem('created_channels_data')
+
+    if (!token || !timestamp || !channelsData) {
+      router.push('/user_onboarding')
+    } else {
+      const parsedData = JSON.parse(channelsData)
+      if (parsedData.channels && Array.isArray(parsedData.channels) && parsedData.channels.length > 0) {
+        setChannels(parsedData.channels)
+      }
+      if (createdChannelsData) {
+        const parsedCreated = JSON.parse(createdChannelsData)
+        if (parsedCreated.channels && Array.isArray(parsedCreated.channels) && parsedCreated.channels.length > 0) {
+          setCreatedChannels(parsedCreated.channels)
+        }
+      }
+    }
+  }, [router])
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen bg-black text-white flex flex-col p-4 md:p-8 relative">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl md:text-3xl font-semibold">Created Channels</h1>
+        <button
+          className="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 text-sm md:text-base cursor-pointer"
+          onClick={() => setShowJoinCard(true)}
+        >
+          Join a Channel
+        </button>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {createdChannels.length > 0 ? (
+        <div className="flex flex-col space-y-4 mb-10">
+          {createdChannels.map((channel, index) => (
+            <Link
+              key={index}
+              href={`/chat_ui?channel_name=${encodeURIComponent(channel)}`}
+              className="text-lg md:text-xl text-gray-300 hover:underline"
+            >
+              {channel}
+            </Link>
+          ))}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      ) : (
+        <div className="flex flex-1 items-center justify-center mb-10">
+          <h2 className="text-2xl md:text-3xl font-semibold text-gray-300">Create a Channel</h2>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl md:text-3xl font-semibold">Joined Channels</h1>
+      </div>
+
+      {channels.length > 0 ? (
+        <div className="flex flex-col space-y-4">
+          {channels.map((channel, index) => (
+            <Link
+              key={index}
+              href={`/chat_ui?channel_name=${encodeURIComponent(channel)}`}
+              className="text-lg md:text-xl text-gray-300 hover:underline"
+            >
+              {channel}
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-1 items-center justify-center">
+          <h2 className="text-2xl md:text-3xl font-semibold text-gray-300">Join Channels</h2>
+        </div>
+      )}
+
+      <div
+        className="absolute bottom-4 right-4 bg-gray-800 text-white w-12 h-12 flex items-center justify-center rounded-full cursor-pointer text-3xl"
+        onClick={() => setShowPopup(true)}
+      >
+        +
+      </div>
+
+      {showPopup && <CreateChannelPopup onClose={() => setShowPopup(false)} />}
+
+      {showJoinCard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80">
+          <UsersJoiningChannel onClose={() => setShowJoinCard(false)} />
+        </div>
+      )}
     </div>
-  );
+  )
 }
