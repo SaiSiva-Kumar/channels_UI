@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import CreateChannelPopup from './input_feild/page'
 import UsersJoiningChannel from './join_channel/users_joining_card'
 import Link from 'next/link'
-import { checkTokenExpiration } from '../utils/authUtil'
 
 export default function HomePage() {
   const [channels, setChannels] = useState<string[]>([])
@@ -14,23 +13,15 @@ export default function HomePage() {
   const [showJoinCard, setShowJoinCard] = useState(false)
   const router = useRouter()
 
+
   useEffect(() => {
-    const validateAndLoadData = async () => {
-      const token = localStorage.getItem('access_token')
-      const channelsData = localStorage.getItem('channels_data')
-      const createdChannelsData = localStorage.getItem('created_channels_data')
+    const token = localStorage.getItem('access_token')
+    const channelsData = localStorage.getItem('channels_data')
+    const createdChannelsData = localStorage.getItem('created_channels_data')
 
-      if (!token || !channelsData) {
-        router.push('/user_onboarding')
-        return
-      }
-
-      const newToken = await checkTokenExpiration(token)
-      if (newToken) {
-        console.log('Token refreshed:', newToken)
-        localStorage.setItem('access_token', newToken)
-      }
-
+    if (!token || !channelsData) {
+      router.push('/user_onboarding')
+    } else {
       const parsedData = JSON.parse(channelsData)
       if (parsedData.channels && Array.isArray(parsedData.channels) && parsedData.channels.length > 0) {
         setChannels(parsedData.channels)
@@ -42,8 +33,6 @@ export default function HomePage() {
         }
       }
     }
-
-    validateAndLoadData()
   }, [router])
 
   return (
@@ -115,3 +104,6 @@ export default function HomePage() {
     </div>
   )
 }
+
+
+please understand the code and see the correct way to call the function before the server logic hits. And please provide me whole code, modified code + existing code. Exiting code should not contain any changes either UI or logic part and please no comments. Did you understood the context?

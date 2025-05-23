@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { checkTokenExpiration } from '../../utils/authUtil'
 
 export default function JoinChannelCard({ onClose }: { onClose: () => void }) {
   const [inputUrl, setInputUrl] = useState('')
@@ -11,10 +12,18 @@ export default function JoinChannelCard({ onClose }: { onClose: () => void }) {
   const handleJoin = async () => {
     if (!inputUrl.trim()) return
 
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : ''
+    let token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : ''
+
     if (!token) {
       setMessage('No access token found')
       return
+    }
+
+    const refreshedToken = await checkTokenExpiration(token)
+    if (refreshedToken && typeof refreshedToken === 'string') {
+      token = refreshedToken
+      localStorage.setItem('access_token', refreshedToken)
+      console.log('Token refreshed:', token)
     }
 
     const url = new URL(inputUrl)

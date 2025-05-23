@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { checkTokenExpiration } from '../../utils/authUtil'
 
 export default function CreateChannelPopup({ onClose }: { onClose: () => void }) {
   const [channelName, setChannelName] = useState('')
@@ -40,18 +41,20 @@ export default function CreateChannelPopup({ onClose }: { onClose: () => void })
     setErrorMessage('')
     setSuccessMessage('')
 
+    let token = localStorage.getItem('access_token')
+    const newToken = await checkTokenExpiration(token || '')
+
+    if (newToken) {
+      localStorage.setItem('access_token', newToken)
+      token = newToken
+      console.log('Token refreshed:', token)
+    }
+
     const payload = {
       channel_name: channelName,
       channel_description: channelDescription,
       time_out_reason: timedOutWords,
       ban_reason: bannedWords,
-    }
-
-    const token = localStorage.getItem('access_token')
-
-    if (!token) {
-      setErrorMessage('You must be logged in to submit.')
-      return
     }
 
     try {
@@ -65,10 +68,6 @@ export default function CreateChannelPopup({ onClose }: { onClose: () => void })
       })
 
       const responseJson = await response.json()
-      console.log('Status:', response.status)
-      console.log('Response JSON:', responseJson)
-      console.log(response.status === 201)
-
       if (response.status === 201) {
         const existingData = localStorage.getItem('created_channels_data')
         let parsedChannels = []
@@ -87,7 +86,6 @@ export default function CreateChannelPopup({ onClose }: { onClose: () => void })
         }
 
         localStorage.setItem('created_channels_data', JSON.stringify(updatedData))
-        console.log('Updated data:', localStorage.getItem('created_channels_data'))
         setSuccessMessage('Form submitted successfully!')
         setTimeout(() => {
           onClose()
@@ -97,7 +95,6 @@ export default function CreateChannelPopup({ onClose }: { onClose: () => void })
         setErrorMessage('Failed to submit the form. Please try again later.')
       }
     } catch (error) {
-      console.log(error)
       setErrorMessage('Error occurred while submitting the form.')
     }
   }

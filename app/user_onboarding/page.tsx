@@ -9,50 +9,45 @@ export default function OnboardingPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const accessToken = localStorage.getItem('access_token');
-    const signInTimestamp = localStorage.getItem('sign_in_timestamp');
-    const channelsData = localStorage.getItem('channels_data');
-    const createdChannelsData = localStorage.getItem('created_channels_data');
-    
-    if (accessToken && signInTimestamp && channelsData && createdChannelsData) {
-      router.push('/')  
+    const accessToken = localStorage.getItem('access_token')
+    const channelsData = localStorage.getItem('channels_data')
+    const createdChannelsData = localStorage.getItem('created_channels_data')
+
+    if (accessToken && channelsData && createdChannelsData) {
+      router.push('/')
     }
-  }, [router]);
+  }, [router])
 
   const handleGoogleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
+    const provider = new GoogleAuthProvider()
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
+      const result = await signInWithPopup(auth, provider)
+      const user = result.user
       const token = await user.getIdToken();
-      const timestamp = new Date().getTime();
-
       localStorage.setItem('access_token', token);
-      localStorage.setItem('sign_in_timestamp', timestamp.toString());
 
-      const response = await fetch('https://web-production-4a7d.up.railway.app/users_data/joined_channels/', {
+      const res = await fetch('https://web-production-4a7d.up.railway.app/users_data/joined_channels/', {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      });
+      })
 
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('channels_data', JSON.stringify(data.joined_channels));
-        localStorage.setItem('created_channels_data', JSON.stringify(data.created_channels));
+      if (res.ok) {
+        const data = await res.json()
+        localStorage.setItem('channels_data', JSON.stringify(data.joined_channels))
+        localStorage.setItem('created_channels_data', JSON.stringify(data.created_channels))
       } else {
-        localStorage.setItem('channels_data', JSON.stringify([]));
-        localStorage.setItem('created_channels_data', JSON.stringify([]));
+        localStorage.setItem('channels_data', JSON.stringify([]))
+        localStorage.setItem('created_channels_data', JSON.stringify([]))
       }
 
-      console.log('✅ User signed in:', user);
+      console.log(user);
       router.push('/')
     } catch (error) {
-      console.error('❌ Error signing in:', error);
+      console.error('❌ Error signing in:', error)
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center px-4">
@@ -77,46 +72,5 @@ export default function OnboardingPage() {
         </button>
       </div>
     </div>
-  );
+  )
 }
-
-const checkTokenExpiry = () => {
-  const token = localStorage.getItem('access_token');
-  const timestamp = localStorage.getItem('sign_in_timestamp');
-  
-  if (!token || !timestamp) {
-    return false;
-  }
-
-  const currentTime = new Date().getTime();
-  const tokenAge = currentTime - parseInt(timestamp, 10);
-
-  if (tokenAge > 3 * 24 * 60 * 60 * 1000) {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('sign_in_timestamp');
-    localStorage.removeItem('channels_data');
-    localStorage.removeItem('created_channels_data');
-    return false;
-  }
-
-  return true;
-};
-
-const fetchData = async () => {
-  if (checkTokenExpiry()) {
-    const token = localStorage.getItem('access_token');
-    try {
-      const response = await fetch('https://web-production-4a7d.up.railway.app/users_data/joined_channels/', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      localStorage.setItem('channels_data', JSON.stringify(data.joined_channels));
-      localStorage.setItem('created_channels_data', JSON.stringify(data.created_channels));
-    } catch (error) {
-      console.error('❌ API request failed:', error);
-    }
-  }
-};
