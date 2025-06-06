@@ -12,6 +12,7 @@ export default function HomePage() {
   const [createdChannels, setCreatedChannels] = useState<string[]>([])
   const [showPopup, setShowPopup] = useState(false)
   const [showJoinCard, setShowJoinCard] = useState(false)
+  const [isValidating, setIsValidating] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
@@ -41,10 +42,15 @@ export default function HomePage() {
           setCreatedChannels(parsedCreated.channels)
         }
       }
+      setIsValidating(false)
     }
 
     validateAndLoadData()
   }, [router])
+
+  if (isValidating) {
+    return null
+  }
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col p-4 md:p-8 relative">
