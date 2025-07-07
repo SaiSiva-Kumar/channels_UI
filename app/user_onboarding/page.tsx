@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { auth } from '../firebase_config'
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
+import { GoogleAuthProvider, signInWithPopup, setPersistence, browserLocalPersistence } from 'firebase/auth'
 
 export default function OnboardingPage() {
   const router = useRouter()
@@ -21,10 +21,11 @@ export default function OnboardingPage() {
   const handleGoogleSignIn = async () => {
     const provider = new GoogleAuthProvider()
     try {
+      await setPersistence(auth, browserLocalPersistence)
       const result = await signInWithPopup(auth, provider)
       const user = result.user
-      const token = await user.getIdToken();
-      localStorage.setItem('access_token', token);
+      const token = await user.getIdToken()
+      localStorage.setItem('access_token', token)
 
       const res = await fetch('https://web-production-4a7d.up.railway.app/users_data/joined_channels/', {
         method: 'GET',
@@ -42,7 +43,7 @@ export default function OnboardingPage() {
         localStorage.setItem('created_channels_data', JSON.stringify([]))
       }
 
-      console.log(user);
+      console.log(user)
       router.push('/')
     } catch (error) {
       console.error('❌ Error signing in:', error)
