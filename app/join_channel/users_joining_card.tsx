@@ -27,17 +27,15 @@ export default function JoinChannelCard({ onClose }: { onClose: () => void }) {
     }
 
     const url = new URL(inputUrl)
-    const channelName = url.pathname.replace(/^\/+/, '')
+    const channelName = url.searchParams.get('channel_name')
 
     if (!channelName) {
       setMessage('Invalid channel URL')
       return
     }
 
-    const joinUrl = `https://web-production-4a7d.up.railway.app/create_channels/join/?channel_name=${encodeURIComponent(channelName)}`
-
     try {
-      const response = await fetch(joinUrl, {
+      const response = await fetch(inputUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
