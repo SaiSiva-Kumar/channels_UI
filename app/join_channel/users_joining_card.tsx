@@ -34,7 +34,7 @@ export default function JoinChannelCard({ onClose }: { onClose: () => void }) {
       return
     }
 
-    const joinUrl = `https://web-production-4a7d.up.railway.app/create_channels/join/?channel_name=${encodeURIComponent(channelName)}`
+    const joinUrl = `https://web-production-4a7d.up.railway.app/create_channels/join/?channel_name=${channelName.replace(/ /g, '+')}`
 
     try {
       const response = await fetch(joinUrl, {
