@@ -79,7 +79,7 @@ export default function ChatUIPage() {
   }
 
   const copyLink = () => {
-    const url = `https://web-production-4a7d.up.railway.app/create_channels/join/?channel_name=${channel_name}`
+    const url = `https://join/${channel_name}`
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url).then(
         () => setCopied(true),
