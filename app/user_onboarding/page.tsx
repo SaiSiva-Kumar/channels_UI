@@ -10,28 +10,10 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     const accessToken = localStorage.getItem('access_token')
-    const channelsDataRaw = localStorage.getItem('channels_data')
-    const createdChannelsDataRaw = localStorage.getItem('created_channels_data')
+    const channelsData = localStorage.getItem('channels_data')
+    const createdChannelsData = localStorage.getItem('created_channels_data')
 
-    let isValid = false
-
-    if (accessToken && channelsDataRaw && createdChannelsDataRaw) {
-      try {
-        const channelsData = JSON.parse(channelsDataRaw)
-        const createdChannelsData = JSON.parse(createdChannelsDataRaw)
-
-        if (
-          Array.isArray(channelsData.channels) &&
-          Array.isArray(createdChannelsData.channels)
-        ) {
-          isValid = true
-        }
-      } catch (_) {
-        isValid = false
-      }
-    }
-
-    if (isValid) {
+    if (accessToken && channelsData && createdChannelsData) {
       router.push('/')
     }
   }, [router])
@@ -56,13 +38,9 @@ export default function OnboardingPage() {
         const data = await res.json()
         localStorage.setItem('channels_data', JSON.stringify(data.joined_channels))
         localStorage.setItem('created_channels_data', JSON.stringify(data.created_channels))
-        localStorage.setItem('joined_channels_last_id', data.joined_channels.last_id ? data.joined_channels.last_id.toString() : '')
-        localStorage.setItem('created_channels_last_id', data.created_channels.last_id ? data.created_channels.last_id.toString() : '')
       } else {
-        localStorage.setItem('channels_data', JSON.stringify({ channels: [] }))
-        localStorage.setItem('created_channels_data', JSON.stringify({ channels: [] }))
-        localStorage.setItem('joined_channels_last_id', '')
-        localStorage.setItem('created_channels_last_id', '')
+        localStorage.setItem('channels_data', JSON.stringify([]))
+        localStorage.setItem('created_channels_data', JSON.stringify([]))
       }
 
       console.log(user)
