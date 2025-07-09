@@ -20,28 +20,58 @@ export default function HomePage() {
       const token = localStorage.getItem('access_token')
       const channelsData = localStorage.getItem('channels_data')
       const createdChannelsData = localStorage.getItem('created_channels_data')
+      const joinedLastId = localStorage.getItem('joined_channels_last_id') || ''
+      const createdLastId = localStorage.getItem('created_channels_last_id') || ''
 
-      if (!token || !channelsData) {
+      if (!token || !channelsData || !createdChannelsData || !joinedLastId || !createdLastId) {
         router.push('/user_onboarding')
         return
       }
 
       const newToken = await checkTokenExpiration(token)
       if (newToken) {
-        console.log('Token refreshed:', newToken)
         localStorage.setItem('access_token', newToken)
       }
 
-      const parsedData = JSON.parse(channelsData)
-      if (parsedData.channels && Array.isArray(parsedData.channels) && parsedData.channels.length > 0) {
-        setChannels(parsedData.channels)
-      }
-      if (createdChannelsData) {
-        const parsedCreated = JSON.parse(createdChannelsData)
-        if (parsedCreated.channels && Array.isArray(parsedCreated.channels) && parsedCreated.channels.length > 0) {
-          setCreatedChannels(parsedCreated.channels)
+      const params = new URLSearchParams()
+      params.set('joined_max_id', joinedLastId)
+      params.set('created_max_id', createdLastId)
+
+      const res = await fetch(`https://web-production-4a7d.up.railway.app/users_data/joined_channels/?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${newToken || token}`
+        }
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (data.joined_channels && data.joined_channels.channels) {
+          const joinedData = {
+            total_channels: data.joined_channels.total_channels,
+            channels: data.joined_channels.channels
+          }
+          localStorage.setItem('channels_data', JSON.stringify(joinedData))
+          localStorage.setItem('joined_channels_last_id', data.joined_channels.last_id ? data.joined_channels.last_id.toString() : '')
+          setChannels(joinedData.channels)
+        } else if (channelsData) {
+          const parsedData = JSON.parse(channelsData)
+          setChannels(parsedData.channels || [])
+        }
+        if (data.created_channels && data.created_channels.channels) {
+          const createdData = {
+            total_channels: data.created_channels.total_channels,
+            channels: data.created_channels.channels
+          }
+          localStorage.setItem('created_channels_data', JSON.stringify(createdData))
+          localStorage.setItem('created_channels_last_id', data.created_channels.last_id ? data.created_channels.last_id.toString() : '')
+          setCreatedChannels(createdData.channels)
+        } else if (createdChannelsData) {
+          const parsedCreated = JSON.parse(createdChannelsData)
+          setCreatedChannels(parsedCreated.channels || [])
         }
       }
+
       setIsValidating(false)
     }
 
