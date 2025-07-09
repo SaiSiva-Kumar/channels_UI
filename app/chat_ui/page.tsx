@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { jwtDecode } from 'jwt-decode'
 import { checkTokenExpiration } from '../../utils/authUtil'
 
@@ -11,10 +11,21 @@ export default function ChatUIPage() {
   const [isMobile, setIsMobile] = useState(false)
   const ws = useRef<WebSocket | null>(null)
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [token, setToken] = useState<string | null>(() => (typeof window !== 'undefined' ? localStorage.getItem('access_token') : null))
   const channel_name = searchParams.get('channel_name') || ''
   const lastSentMessage = useRef<string | null>(null)
   const currentUserId = token ? (jwtDecode(token) as { user_id: string }).user_id : null
+
+  useEffect(() => {
+    const accessToken = localStorage.getItem('access_token')
+    const channelsData = localStorage.getItem('channels_data')
+    const createdChannelsData = localStorage.getItem('created_channels_data')
+
+    if (!accessToken || !channelsData || !createdChannelsData) {
+      router.push('/user_onboarding')
+    }
+  }, [router])
 
   useEffect(() => {
     setIsMobile(/Mobi|Android|iPhone|iPad|iPod/.test(navigator.userAgent))
