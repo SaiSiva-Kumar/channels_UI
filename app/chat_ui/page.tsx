@@ -9,6 +9,7 @@ export default function ChatUIPage() {
   const [messages, setMessages] = useState<{ type: 'sent' | 'received'; content: string; status?: string }[]>([])
   const [copied, setCopied] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [isValidating, setIsValidating] = useState(true)
   const ws = useRef<WebSocket | null>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -24,7 +25,9 @@ export default function ChatUIPage() {
 
     if (!accessToken || !channelsData || !createdChannelsData) {
       router.push('/user_onboarding')
+      return
     }
+    setIsValidating(false)
   }, [router])
 
   useEffect(() => {
@@ -120,6 +123,10 @@ export default function ChatUIPage() {
       setCopied(true)
     }
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  if (isValidating) {
+    return null
   }
 
   return (
