@@ -38,12 +38,15 @@ export default function OnboardingPage() {
         const data = await res.json()
         localStorage.setItem('channels_data', JSON.stringify(data.joined_channels))
         localStorage.setItem('created_channels_data', JSON.stringify(data.created_channels))
+        localStorage.setItem('joined_channels_last_id', data.joined_channels.last_id ? data.joined_channels.last_id.toString() : '')
+        localStorage.setItem('created_channels_last_id', data.created_channels.last_id ? data.created_channels.last_id.toString() : '')
       } else {
-        localStorage.setItem('channels_data', JSON.stringify([]))
-        localStorage.setItem('created_channels_data', JSON.stringify([]))
+        localStorage.setItem('channels_data', JSON.stringify({ channels: [] }))
+        localStorage.setItem('created_channels_data', JSON.stringify({ channels: [] }))
+        localStorage.setItem('joined_channels_last_id', '')
+        localStorage.setItem('created_channels_last_id', '')
       }
 
-      console.log(user)
       router.push('/')
     } catch (error) {
       console.error('❌ Error signing in:', error)
