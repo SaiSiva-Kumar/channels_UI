@@ -23,7 +23,7 @@ export default function HomePage() {
       const joinedLastId = localStorage.getItem('joined_channels_last_id') || ''
       const createdLastId = localStorage.getItem('created_channels_last_id') || ''
 
-      if (!token || !channelsData || !createdChannelsData || !joinedLastId || !createdLastId) {
+      if (!token || !channelsData || !createdChannelsData) {
         router.push('/user_onboarding')
         return
       }
