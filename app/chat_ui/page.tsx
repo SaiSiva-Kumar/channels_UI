@@ -53,6 +53,9 @@ export default function ChatUIPage() {
       ws.current = new WebSocket(wsUrl)
       ws.current.onmessage = (event) => {
         const data = JSON.parse(event.data)
+        if (typeof data.is_creator === 'boolean') {
+          console.log('is_creator:', data.is_creator)
+        }
         if (data.previous_messages && Array.isArray(data.previous_messages)) {
           const previous = data.previous_messages.map((msg: any) => ({
             type: msg.user_id === currentUserId ? 'sent' : 'received',
