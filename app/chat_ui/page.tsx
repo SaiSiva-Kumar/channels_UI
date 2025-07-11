@@ -6,7 +6,7 @@ import { checkTokenExpiration } from '../../utils/authUtil'
 
 export default function ChatUIPage() {
   const [message, setMessage] = useState('')
-  const [messages, setMessages] = useState<{ type: 'sent' | 'received'; content: string; status?: string }[]>([])
+  const [messages, setMessages] = useState<{ type: 'sent' | 'received'; content: string; status?: string; user_id?: string; user_name?: string }[]>([])
   const [copied, setCopied] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isValidating, setIsValidating] = useState(true)
@@ -60,6 +60,8 @@ export default function ChatUIPage() {
           const previous = data.previous_messages.map((msg: any) => ({
             type: msg.user_id === currentUserId ? 'sent' : 'received',
             content: msg.message,
+            user_id: msg.user_id,
+            user_name: msg.user_name
           }))
           setMessages((prev) => [...prev, ...previous])
         } else if (data.message === 'Message delivered') {
@@ -73,7 +75,7 @@ export default function ChatUIPage() {
             )
           }
         } else if (data.message && data.message !== lastSentMessage.current) {
-          setMessages((prev) => [...prev, { type: 'received', content: data.message }])
+          setMessages((prev) => [...prev, { type: 'received', content: data.message, user_id: data.user_id, user_name: data.user_name }])
         }
       }
       ws.current.onclose = () => {
@@ -87,6 +89,22 @@ export default function ChatUIPage() {
 
   const sendMessage = () => {
     if (ws.current && message.trim() !== '') {
+      const commandRegex = /^\/(timeout|ban) user, (.+)$/i
+      const match = message.trim().match(commandRegex)
+      if (match) {
+        const cmd = match[1].toLowerCase()
+        const username = match[2].trim()
+        const target = messages.find(m => m.user_name === username)
+        if (target?.user_id) {
+          ws.current.send(JSON.stringify({
+            command: cmd === 'timeout' ? 'time_out_user' : 'ban_user',
+            user_id: target.user_id,
+            username: target.user_name
+          }))
+        }
+        setMessage('')
+        return
+      }
       const messageData = JSON.stringify({ message })
       lastSentMessage.current = message
       ws.current.send(messageData)
