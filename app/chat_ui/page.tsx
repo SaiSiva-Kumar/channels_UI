@@ -75,7 +75,12 @@ export default function ChatUIPage() {
             )
           }
         } else if (data.message && data.message !== lastSentMessage.current) {
-          setMessages((prev) => [...prev, { type: 'received', content: data.message, user_id: data.user_id, user_name: data.user_name }])
+          setMessages((prev) => [...prev, {
+            type: 'received',
+            content: data.message,
+            user_id: data.user_id,
+            user_name: data.user_name
+          }])
         }
       }
       ws.current.onclose = () => {
