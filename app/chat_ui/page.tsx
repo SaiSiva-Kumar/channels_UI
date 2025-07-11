@@ -7,7 +7,6 @@ import { checkTokenExpiration } from '../../utils/authUtil'
 export default function ChatUIPage() {
   const [message, setMessage] = useState('')
   const [messages, setMessages] = useState<{ type: 'sent' | 'received'; content: string; status?: string; user_id?: string; user_name?: string }[]>([])
-  const [usersInChannel, setUsersInChannel] = useState<{ user_id: string; user_name: string }[]>([])
   const [copied, setCopied] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isValidating, setIsValidating] = useState(true)
@@ -57,9 +56,6 @@ export default function ChatUIPage() {
         if (typeof data.is_creator === 'boolean') {
           console.log('is_creator:', data.is_creator)
         }
-        if (data.users_in_channel && Array.isArray(data.users_in_channel)) {
-          setUsersInChannel(data.users_in_channel)
-        }
         if (data.previous_messages && Array.isArray(data.previous_messages)) {
           const previous = data.previous_messages.map((msg: any) => ({
             type: msg.user_id === currentUserId ? 'sent' : 'received',
@@ -103,7 +99,7 @@ export default function ChatUIPage() {
       if (match) {
         const cmd = match[1].toLowerCase()
         const username = match[2].trim()
-        const target = usersInChannel.find(u => u.user_name === username) || messages.find(m => m.user_name === username)
+        const target = messages.find(m => m.user_name === username)
         if (target?.user_id) {
           ws.current.send(JSON.stringify({
             command: cmd === 'timeout' ? 'time_out_user' : 'ban_user',
