@@ -169,7 +169,7 @@ export default function ChatUIPage() {
       <div className="flex-1 overflow-y-auto mb-4 space-y-2">
         {messages.map((msg, index) => (
           <div key={index} className={`p-2 rounded-md max-w-xs ${msg.type === 'sent' ? 'bg-blue-600 self-end ml-auto' : 'bg-gray-700 self-start mr-auto'}`}>
-            {msg.content}
+            <span className="font-semibold">{msg.user_name || 'You'}:</span> {msg.content}
             {msg.type === 'sent' && msg.status && (
               <div className="text-sm text-gray-400 mt-1">{msg.status}</div>
             )}
