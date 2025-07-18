@@ -6,10 +6,14 @@ import { checkTokenExpiration } from '../../utils/authUtil'
 
 export default function ChatUIPage() {
   const [message, setMessage] = useState('')
-  const [messages, setMessages] = useState<{ type: 'sent' | 'received'; content: string; status?: string; user_id?: string; user_name?: string }[]>([])
+  const [messages, setMessages] = useState<
+    { id?: number; type: 'sent' | 'received'; content: string; status?: string; user_id?: string; user_name?: string }[]
+  >([])
   const [copied, setCopied] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isValidating, setIsValidating] = useState(true)
+  const [isCreator, setIsCreator] = useState(false)
+  const [activeDropdown, setActiveDropdown] = useState<number | null>(null)
   const ws = useRef<WebSocket | null>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -22,7 +26,6 @@ export default function ChatUIPage() {
     const accessToken = localStorage.getItem('access_token')
     const channelsData = localStorage.getItem('channels_data')
     const createdChannelsData = localStorage.getItem('created_channels_data')
-
     if (!accessToken || !channelsData || !createdChannelsData) {
       router.push('/user_onboarding')
       return
@@ -53,34 +56,60 @@ export default function ChatUIPage() {
       ws.current = new WebSocket(wsUrl)
       ws.current.onmessage = (event) => {
         const data = JSON.parse(event.data)
-        if (typeof data.is_creator === 'boolean') {
-          console.log('is_creator:', data.is_creator)
+        if (Object.prototype.hasOwnProperty.call(data, 'deleted_message_id')) {
+          const deletedId = Number(data.deleted_message_id)
+          setMessages(prev =>
+            prev.map(msg =>
+              Number(msg.id) === deletedId
+                ? { ...msg, content: 'message has been deleted', user_name: undefined, status: undefined }
+                : msg
+            )
+          )
+          return
         }
-        if (data.previous_messages && Array.isArray(data.previous_messages)) {
+        if (typeof data.creator === 'boolean') {
+          setIsCreator(data.creator)
+        }
+        if (Array.isArray(data.previous_messages)) {
           const previous = data.previous_messages.map((msg: any) => ({
+            id: Number(msg.id),
             type: msg.user_id === currentUserId ? 'sent' : 'received',
             content: msg.message,
             user_id: msg.user_id,
             user_name: msg.user_name
           }))
-          setMessages((prev) => [...prev, ...previous])
+          setMessages(prev => [...prev, ...previous])
         } else if (data.message === 'Message delivered') {
           if (lastSentMessage.current) {
-            setMessages((prev) =>
-              prev.map((m) =>
+            setMessages(prev =>
+              prev.map(m =>
                 m.type === 'sent' && m.content === lastSentMessage.current
                   ? { ...m, status: 'Message delivered' }
                   : m
               )
             )
           }
+        } else if (data.message && data.message === lastSentMessage.current && data.message_id) {
+          setMessages(prev =>
+            prev.map(m =>
+              m.type === 'sent' && m.content === lastSentMessage.current
+                ? { ...m, id: data.message_id }
+                : m
+            )
+          )
         } else if (data.message && data.message !== lastSentMessage.current) {
-          setMessages((prev) => [...prev, {
-            type: 'received',
-            content: data.message,
-            user_id: data.user_id,
-            user_name: data.user_name
-          }])
+          if (data.message_id && data.user_id) {
+            setMessages(prev => [
+              ...prev,
+              {
+                id: data.message_id,
+                type: 'received',
+                content: data.message,
+                user_id: data.user_id,
+                user_name: data.user_name
+              }
+            ])
+          }
         }
       }
       ws.current.onclose = () => {
@@ -94,26 +123,10 @@ export default function ChatUIPage() {
 
   const sendMessage = () => {
     if (ws.current && message.trim() !== '') {
-      const commandRegex = /^\/(timeout|ban) user, (.+)$/i
-      const match = message.trim().match(commandRegex)
-      if (match) {
-        const cmd = match[1].toLowerCase()
-        const username = match[2].trim()
-        const target = messages.find(m => m.user_name === username)
-        if (target?.user_id) {
-          ws.current.send(JSON.stringify({
-            command: cmd === 'timeout' ? 'time_out_user' : 'ban_user',
-            user_id: target.user_id,
-            username: target.user_name
-          }))
-        }
-        setMessage('')
-        return
-      }
       const messageData = JSON.stringify({ message })
       lastSentMessage.current = message
       ws.current.send(messageData)
-      setMessages((prev) => [...prev, { type: 'sent', content: message }])
+      setMessages(prev => [...prev, { type: 'sent', content: message }])
       setMessage('')
     }
   }
@@ -123,32 +136,17 @@ export default function ChatUIPage() {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url).then(
         () => setCopied(true),
-        () => {
-          const textarea = document.createElement('textarea')
-          textarea.value = url
-          textarea.setAttribute('readonly', '')
-          textarea.style.position = 'absolute'
-          textarea.style.left = '-9999px'
-          document.body.appendChild(textarea)
-          textarea.select()
-          document.execCommand('copy')
-          document.body.removeChild(textarea)
-          setCopied(true)
-        }
+        () => setCopied(true)
       )
-    } else {
-      const textarea = document.createElement('textarea')
-      textarea.value = url
-      textarea.setAttribute('readonly', '')
-      textarea.style.position = 'absolute'
-      textarea.style.left = '-9999px'
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textarea)
-      setCopied(true)
     }
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleDelete = (id: number) => {
+    if (ws.current && id) {
+      ws.current.send(JSON.stringify({ command: 'soft_delete', message_id: id }))
+      setActiveDropdown(null)
+    }
   }
 
   if (isValidating) {
@@ -168,10 +166,42 @@ export default function ChatUIPage() {
       </div>
       <div className="flex-1 overflow-y-auto mb-4 space-y-2">
         {messages.map((msg, index) => (
-          <div key={index} className={`p-2 rounded-md max-w-xs ${msg.type === 'sent' ? 'bg-blue-600 self-end ml-auto' : 'bg-gray-700 self-start mr-auto'}`}>
-            <span className="font-semibold">{msg.user_name || 'You'}:</span> {msg.content}
+          <div
+            key={msg.id ?? index}
+            className={`relative block max-w-xs md:max-w-md rounded-md p-2 pr-8 ${
+              msg.type === 'sent'
+                ? 'bg-blue-600 self-end ml-auto'
+                : 'bg-gray-700 self-start mr-auto'
+            }`}
+          >
+            <div>
+              {msg.user_name ? `${msg.user_name}: ` : ''}
+              {msg.content}
+            </div>
             {msg.type === 'sent' && msg.status && (
               <div className="text-sm text-gray-400 mt-1">{msg.status}</div>
+            )}
+            {isCreator && (
+              <div className="absolute top-1 right-1">
+                <button
+                  onClick={() =>
+                    setActiveDropdown(activeDropdown === msg.id ? null : msg.id)
+                  }
+                  className="text-white px-1"
+                >
+                  ⋮
+                </button>
+                {activeDropdown === msg.id && (
+                  <div className="absolute right-0 bottom-full mb-1 bg-gray-800 text-sm rounded shadow-lg z-10">
+                    <button
+                      onClick={() => handleDelete(msg.id!)}
+                      className="block px-4 py-2 hover:bg-gray-700 w-full text-left"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         ))}
@@ -180,8 +210,8 @@ export default function ChatUIPage() {
         <input
           type="text"
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+          onChange={e => setMessage(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && sendMessage()}
           placeholder="Type your message..."
           className="flex-1 p-2 rounded-l-md bg-gray-800 text-white focus:outline-none"
         />
