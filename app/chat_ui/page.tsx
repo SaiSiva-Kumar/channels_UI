@@ -181,7 +181,7 @@ export default function ChatUIPage() {
             {msg.type === 'sent' && msg.status && (
               <div className="text-sm text-gray-400 mt-1">{msg.status}</div>
             )}
-            {isCreator && (
+            {isCreator && msg.content !== 'message has been deleted' && (
               <div className="absolute top-1 right-1">
                 <button
                   onClick={() =>
