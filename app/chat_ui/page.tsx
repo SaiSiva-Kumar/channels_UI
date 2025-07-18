@@ -123,6 +123,16 @@ export default function ChatUIPage() {
 
   const sendMessage = () => {
     if (ws.current && message.trim() !== '') {
+      const commandRegex = /^\/(time_out_user|ban_user)\s+(\S+)\s+(.+)$/i
+      const match = message.trim().match(commandRegex)
+      if (match) {
+        const cmd = match[1].toLowerCase()
+        const user_id = match[2]
+        const username = match[3]
+        ws.current.send(JSON.stringify({ command: cmd, user_id, username }))
+        setMessage('')
+        return
+      }
       const messageData = JSON.stringify({ message })
       lastSentMessage.current = message
       ws.current.send(messageData)
@@ -136,8 +146,30 @@ export default function ChatUIPage() {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url).then(
         () => setCopied(true),
-        () => setCopied(true)
+        () => {
+          const textarea = document.createElement('textarea')
+          textarea.value = url
+          textarea.setAttribute('readonly', '')
+          textarea.style.position = 'absolute'
+          textarea.style.left = '-9999px'
+          document.body.appendChild(textarea)
+          textarea.select()
+          document.execCommand('copy')
+          document.body.removeChild(textarea)
+          setCopied(true)
+        }
       )
+    } else {
+      const textarea = document.createElement('textarea')
+      textarea.value = url
+      textarea.setAttribute('readonly', '')
+      textarea.style.position = 'absolute'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+      setCopied(true)
     }
     setTimeout(() => setCopied(false), 2000)
   }
@@ -165,9 +197,9 @@ export default function ChatUIPage() {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto mb-4 space-y-2">
-        {messages.map((msg, index) => (
+        {messages.map((msg) => (
           <div
-            key={msg.id ?? index}
+            key={msg.id ?? msg.content}
             className={`relative block max-w-xs md:max-w-md rounded-md p-2 pr-8 ${
               msg.type === 'sent'
                 ? 'bg-blue-600 self-end ml-auto'
