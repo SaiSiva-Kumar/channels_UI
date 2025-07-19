@@ -17,7 +17,7 @@ export default function ChatUIPage() {
   const ws = useRef<WebSocket | null>(null)
   const searchParams = useSearchParams()
   const router = useRouter()
-  const [token, setToken] = useState<string | null>(() => (typeof window !== 'undefined' ? localStorage.getItem('access_token') : null))
+  const [token, setToken] = useState<string | null>(() => typeof window !== 'undefined' ? localStorage.getItem('access_token') : null)
   const channel_name = searchParams.get('channel_name') || ''
   const lastSentMessage = useRef<string | null>(null)
   const currentUserId = token ? (jwtDecode(token) as { user_id: string }).user_id : null
@@ -41,13 +41,13 @@ export default function ChatUIPage() {
     async function verifyAndSetToken() {
       if (!token) return
       const newToken = await checkTokenExpiration(token)
-      if (newToken && typeof newToken === 'string') {
+      if (typeof newToken === 'string') {
         localStorage.setItem('access_token', newToken)
         setToken(newToken)
       }
     }
     verifyAndSetToken()
-  }, [])
+  }, [token])
 
   useEffect(() => {
     if (token && channel_name && currentUserId) {
@@ -97,24 +97,29 @@ export default function ChatUIPage() {
                 : m
             )
           )
-        } else if (data.message && data.message !== lastSentMessage.current) {
-          if (data.message_id && data.user_id) {
-            setMessages(prev => [
-              ...prev,
-              {
-                id: data.message_id,
-                type: 'received',
-                content: data.message,
-                user_id: data.user_id,
-                user_name: data.user_name
-              }
-            ])
-          }
+        } else if (
+          data.message &&
+          (data.message.includes('timed out') || data.message.includes('banned'))
+        ) {
+          setMessages(prev => [
+            ...prev,
+            { type: 'received', content: data.message }
+          ])
+          return
+        } else if (data.message && data.message_id && data.user_id) {
+          setMessages(prev => [
+            ...prev,
+            {
+              id: data.message_id,
+              type: 'received',
+              content: data.message,
+              user_id: data.user_id,
+              user_name: data.user_name
+            }
+          ])
         }
       }
-      ws.current.onclose = () => {
-        console.log('WebSocket connection closed')
-      }
+      ws.current.onclose = () => {}
       return () => {
         ws.current?.close()
       }
@@ -123,13 +128,15 @@ export default function ChatUIPage() {
 
   const sendMessage = () => {
     if (ws.current && message.trim() !== '') {
-      const commandRegex = /^\/(time_out_user|ban_user)\s+(\S+)\s+(.+)$/i
+      const commandRegex = /^\/(time_out_user|ban_user)\s+(\w+)$/i
       const match = message.trim().match(commandRegex)
       if (match) {
         const cmd = match[1].toLowerCase()
-        const user_id = match[2]
-        const username = match[3]
-        ws.current.send(JSON.stringify({ command: cmd, user_id, username }))
+        const username = match[2]
+        const target = messages.find(m => m.user_name === username)
+        if (target?.user_id) {
+          ws.current.send(JSON.stringify({ command: cmd, user_id: target.user_id, username }))
+        }
         setMessage('')
         return
       }
@@ -143,7 +150,7 @@ export default function ChatUIPage() {
 
   const copyLink = () => {
     const url = `https://join/${channel_name}`
-    if (navigator.clipboard && navigator.clipboard.writeText) {
+    if (navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(url).then(
         () => setCopied(true),
         () => {
@@ -197,7 +204,7 @@ export default function ChatUIPage() {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto mb-4 space-y-2">
-        {messages.map((msg) => (
+        {messages.map(msg => (
           <div
             key={msg.id ?? msg.content}
             className={`relative block max-w-xs md:max-w-md rounded-md p-2 pr-8 ${
